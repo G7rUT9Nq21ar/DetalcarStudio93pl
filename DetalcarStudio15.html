@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>DetailcarStudio – Zamówienie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=PLN"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    .product-img { max-width: 100%; height: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; }
+    .cart-panel { border: 1px solid #ccc; padding: 1rem; margin-top: 2rem; }
+    .form-section { margin-top: 2rem; padding: 1rem; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">DetailcarStudio – Zamówienie</h1>
+
+    <!-- Produkt -->
+    <div class="row mt-4 align-items-center">
+      <div class="col-md-5 text-center">
+        <img 
+          src="https://4kom.pl/hpeciai/954e3e503dddf8013109609994f73401/pol_pl_Scierka-sciereczka-polerujaca-do-ekranow-mikrofibra-30x40-cm-Recznik-dwustronny-welurowy-do-mycia-ekranow-osuszania-samochodu-Alogy-74098_22.jpg" 
+          alt="Ściereczka BRAYT" 
+          class="product-img"
+          width="300"
+        >
+      </div>
+      <div class="col-md-7">
+        <h2>BRAYT | Ściereczka z mikrofibry</h2>
+        <p><strong>Opis:</strong> Ciemnoszara z żółtym szwem do szyb, 300g, 40x40 cm</p>
+        <p><strong>Cena:</strong> <span id="price">14.99</span> zł</p>
+        <button class="btn btn-success" onclick="addToCart('BRAYT Ściereczka', 14.99)">Dodaj do koszyka</button>
+      </div>
+    </div>
+
+    <!-- Koszyk -->
+    <div class="cart-panel" id="cart">
+      <h4>Koszyk</h4>
+      <ul id="cart-items" class="list-group mb-3"></ul>
+      <p><strong>Suma:</strong> <span id="total">0.00 zł (0 zamówień)</span></p>
+    </div>
+
+    <!-- Formularz zamówienia -->
+    <div class="form-section">
+      <h4>Dane do wysyłki</h4>
+      <form id="order-form">
+        <div class="row mb-3">
+          <div class="col">
+            <input type="text" class="form-control" placeholder="Imię" name="Imię" required>
+          </div>
+          <div class="col">
+            <input type="text" class="form-control" placeholder="Nazwisko" name="Nazwisko" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <input type="text" class="form-control" placeholder="Ulica i numer domu/mieszkania" name="Adres" required>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <input type="text" class="form-control" placeholder="Kod pocztowy" name="Kod pocztowy" required>
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" placeholder="Miasto" name="Miasto" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <input type="email" class="form-control" placeholder="E-mail" name="Email" required>
+        </div>
+        <div class="mb-3">
+          <input type="tel" class="form-control" placeholder="Telefon kontaktowy" name="Telefon" required>
+        </div>
+      </form>
+    </div>
+
+    <!-- Płatności -->
+    <div class="form-section">
+      <h4>Płatność</h4>
+      <div id="paypal-button-container" class="mb-3"></div>
+      <h6>Alternatywnie:</h6>
+      <button class="btn btn-outline-secondary">Zapłać BLIK</button>
+      <button class="btn btn-outline-secondary">Zapłać przelewem</button>
+    </div>
+  </div>
+
+  <script>
+    const cart = [];
+
+    function addToCart(name, price) {
+      const existingItem = cart.find(item => item.name === name);
+      if (existingItem) {
+        existingItem.qty += 1;
+      } else {
+        cart.push({ name, price, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const itemsEl = document.getElementById("cart-items");
+      const totalEl = document.getElementById("total");
+      itemsEl.innerHTML = "";
+      let total = 0;
+      let count = 0;
+
+      cart.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `
+          ${item.name} x${item.qty} – ${(item.price * item.qty).toFixed(2)} zł
+          <button class="btn btn-sm btn-danger ms-3" onclick="removeItem(${index})">Usuń</button>
+        `;
+        itemsEl.appendChild(li);
+        total += item.price * item.qty;
+        count += item.qty;
+      });
+
+      totalEl.textContent = `${total.toFixed(2)} zł (${count} zamówień)`;
+    }
+
+    function removeItem(index) {
+      if (cart[index].qty > 1) {
+        cart[index].qty -= 1;
+      } else {
+        cart.splice(index, 1);
+      }
+      renderCart();
+    }
+
+    paypal.Buttons({
+      createOrder: function(data, actions) {
+        const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0).toFixed(2);
+        return actions.order.create({
+          purchase_units: [{
+            amount: { value: total }
+          }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+          const form = document.getElementById("order-form");
+          const formData = new FormData(form);
+          let summary = "✅ Podsumowanie zamówienia:\n\n";
+          cart.forEach(item => {
+            summary += `${item.name} x${item.qty}: ${(item.price * item.qty).toFixed(2)} zł\n`;
+          });
+          summary += `\nŁącznie: ${cart.reduce((sum, item) => sum + item.price * item.qty, 0).toFixed(2)} zł\n\n`;
+          summary += "📦 Dane klienta:\n";
+          for (let [key, value] of formData.entries()) {
+            summary += `${key}: ${value}\n`;
+          }
+          alert(summary); // Można zamienić na wysyłkę danych na serwer
+        });
+      }
+    }).render('#paypal-button-container');
+  </script>
+</body>
+</html>
