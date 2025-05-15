@@ -1,0 +1,1 @@
+# DetalcarStudio93pl
